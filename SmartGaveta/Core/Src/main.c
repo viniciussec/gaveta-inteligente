@@ -85,11 +85,10 @@ int main(void) {
 	/* Initialize all configured peripherals */
 	MX_GPIO_Init();
 	/* USER CODE BEGIN 2 */
-	char nome_objeto[25];
+	char nome_objeto[25] = "Desconhecido";
 	char objetos[16][25];
-	char objetos_referência[16][GPIO_PinState];
+	char objetos_referencia[16][GPIO_PinState];
 	char entrada_pergunta = 'p';
-	GPIO_PinState tensoes_teclado[4][4];
 
 	int readBit(unsigned char x, int bit) {
 		unsigned char mask = (0x01 << bit);
@@ -112,12 +111,12 @@ int main(void) {
 		HAL_GPIO_WritePin(GPIOA_BASE, GPIO_PIN_5, readBit(x, 1));
 	}
 
-	void guardar_objeto(char *x, int posx, int posy) {
-		strcpy(objetos[x][y], x);
+	void guardar_objeto(char *x, int pos) {
+		strcpy(objetos[pos], x);
 	}
 
-	void retirar_objeto(int posx, int posy) {
-		memset(objetos[x][y], 0, strlen(objetos[x][y]));
+	void retirar_objeto(int pos) {
+		memset(objetos[pos], 0, strlen(objetos[0]));
 	}
 
 	void encontrar_objeto(char *entrada) {
@@ -189,68 +188,81 @@ int main(void) {
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */
 	while (1) {
+
 		//POSIÇÕES DA GAVETA
+		HAL_GPIO_WritePin(GPIOA_BASE, GPIO_PIN_11, GPIO_PIN_SET);
 		for (int i = 0; i < 4; i++) {
-			HAL_GPIO_WritePin(GPIOA_BASE, GPIO_PIN_11, GPIO_PIN_RESET);
-			HAL_GPIO_WritePin(GPIOA_BASE, GPIO_PIN_12, GPIO_PIN_RESET);
-			HAL_GPIO_WritePin(GPIOA_BASE, GPIO_PIN_13, GPIO_PIN_RESET);
-			HAL_GPIO_WritePin(GPIOA_BASE, GPIO_PIN_14, GPIO_PIN_RESET);
-			//HAL_GPIO_WritePin(GPIOA_BASE, PINO_ITERADO, GPIO_PIN_SET);
-
-			if (HAL_GPIO_ReadPin(GPIOA_BASE, GPIO_PIN_17) == GPIO_PIN_SET) {
-
-			}
-
-			if (HAL_GPIO_ReadPin(GPIOA_BASE, GPIO_PIN_8) == GPIO_PIN_SET) {
-
-			}
-
-			if (HAL_GPIO_ReadPin(GPIOA_BASE, GPIO_PIN_9) == GPIO_PIN_SET) {
-
-			}
-
-			if (HAL_GPIO_ReadPin(GPIOA_BASE, GPIO_PIN_10) == GPIO_PIN_SET) {
-
-			}
-
-		}
-
-		//POSIÇÕES DO TECLADO
-		for (int i = 0; i < 4; i++) {
-			HAL_GPIO_WritePin(GPIOA_BASE, GPIO_PIN_3, GPIO_PIN_RESET);
-			HAL_GPIO_WritePin(GPIOA_BASE, GPIO_PIN_4, GPIO_PIN_RESET);
-			HAL_GPIO_WritePin(GPIOA_BASE, GPIO_PIN_5, GPIO_PIN_RESET);
-			HAL_GPIO_WritePin(GPIOA_BASE, GPIO_PIN_6, GPIO_PIN_RESET);
-//			HAL_GPIO_WritePin(GPIOA_BASE, PINO_ITERADO, GPIO_PIN_SET);
-
-			if (HAL_GPIO_ReadPin(GPIOA_BASE, GPIO_PIN_0) == GPIO_PIN_SET) {
-				if (entrada_pergunta == 'p') {
-
-					if (i == 3) {
-						nome_objeto[strlen(nome_objeto) - 1] = '\0';
+			setABteclado(i);
+			for (int j = 0; j < 4; j++) {
+				unit_16t pino = 0x01;
+				int apertado = HAL_GPIO_ReadPin(GPIOA_BASE, pino << j);
+				if (apertado == 1) {
+					if (objetos_referencia[4 * i + j] == 0) {
+						guardar_objeto("Desconhecido", (4 * i + j));
+						objetos_referencia[4 * i + j] = 1;
+					}
+				} else {
+					if (objetos_referencia[4 * i + j] == 1) {
+						retirar_objeto(4 * i + j);
+						objetos_referencia[4 * i + j] = 0;
 					}
 				}
-
-				if (i == 0 && entrada_pergunta == 'a') {
-					entrada_pergunta = 's';
-				}
 			}
-			if (HAL_GPIO_ReadPin(GPIOA_BASE, GPIO_PIN_1) == GPIO_PIN_SET) {
+		}
+		HAL_GPIO_WritePin(GPIOA_BASE, GPIO_PIN_11, GPIO_PIN_RESET);
 
-				if (i == 3) {
-					nome_objeto[strlen(nome_objeto)] = ' ';
-				}
-				if (i == 0 && entrada_pergunta == 'a') {
-					entrada_pergunta = 'p';
-				}
-			}
-			if (HAL_GPIO_ReadPin(GPIOA_BASE, GPIO_PIN_2) == GPIO_PIN_SET) {
+		//POSIÇÕES DO TECLADO
+		HAL_GPIO_WritePin(GPIOA_BASE, GPIO_PIN_3, GPIO_PIN_SET);
+		for (int i = 0; i < 4; i++) {
+			setABteclado(i);
+			for (int j = 0; j < 3; j++) {
+				unit_16t pino = 0x01;
+				int apertado = HAL_GPIO_ReadPin(GPIOA_BASE, pino << j);
+				if (apertado == 1) {
+					if (i == 0 && j == 0) { // A, B, C
 
-				if (i == 3) {
-					encontrar_objeto(nome_objeto);
+						if (entrada_pergunta == 'a') {
+							entrada_pergunta = 's';
+						}
+
+					} else if (i == 0 && j == 1) { // D, E, F
+						if (entrada_pergunta == 'a') {
+							entrada_pergunta = 'p';
+						}
+					} else if (i == 0 && j == 2) { // G, H, I
+
+					} else if (i == 1 && j == 0) { // J, K, L
+
+					} else if (i == 1 && j == 1) { // M, N, O
+
+					} else if (i == 1 && j == 2) { // P, Q, R
+
+					} else if (i == 2 && j == 0) { // S, T, U
+
+					} else if (i == 2 && j == 1) { // V, W, X
+
+					} else if (i == 2 && j == 2) { // Y, Z
+
+					} else if (i == 3 && j == 0) {
+						if (entrada_pergunta == 'p') {
+							nome_objeto[strlen(nome_objeto) - 1] = '\0';
+						}
+
+					} else if (i == 3 && j == 1) {
+						if (entrada_pergunta == 'p') {
+							nome_objeto[strlen(nome_objeto)] = ' ';
+						}
+
+					} else if (i == 3 && j == 2) {
+						if (entrada_pergunta == 'p') {
+							encontrar_objeto(nome_objeto);
+						}
+
+					}
 				}
 			}
 		}
+		HAL_GPIO_WritePin(GPIOA_BASE, GPIO_PIN_3, GPIO_PIN_RESET);
 
 		/* USER CODE END WHILE */
 
