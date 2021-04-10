@@ -22,7 +22,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <string.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -86,10 +86,31 @@ int main(void) {
 	MX_GPIO_Init();
 	/* USER CODE BEGIN 2 */
 	char nome_objeto[25];
-	char objetos[4][4][25];
-	char objetos_referência[4][4][GPIO_PinState];
+	char objetos[16][25];
+	char objetos_referência[16][GPIO_PinState];
 	char entrada_pergunta = 'p';
 	GPIO_PinState tensoes_teclado[4][4];
+
+	int readBit(unsigned char x, int bit) {
+		unsigned char mask = (0x01 << bit);
+		if ((x & mask) == 0x00) {
+			return 0;
+		} else {
+			return 1;
+		}
+	}
+
+	void setABCD(int x) {
+		HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_0, readBit(x, 0));
+		HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_1, readBit(x, 1));
+		HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_2, readBit(x, 2));
+		HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_3, readBit(x, 3));
+	}
+
+	void setABteclado(int x) {
+		HAL_GPIO_WritePin(GPIOA_BASE, GPIO_PIN_4, readBit(x, 0));
+		HAL_GPIO_WritePin(GPIOA_BASE, GPIO_PIN_5, readBit(x, 1));
+	}
 
 	void guardar_objeto(char *x, int posx, int posy) {
 		strcpy(objetos[x][y], x);
@@ -99,55 +120,40 @@ int main(void) {
 		memset(objetos[x][y], 0, strlen(objetos[x][y]));
 	}
 
-	void acender_led(int x, int y, char *cor) {
-		char R, G, B;
-		if (strcmp(cor, "red") == 0) {
-			R = GPIO_PIN_SET;
-			G = GPIO_PIN_RESET;
-			B = GPIO_PIN_RESET;
-		} else if (strcmp(cor, "green") == 0) {
-			R = GPIO_PIN_RESET;
-			G = GPIO_PIN_SET;
-			B = GPIO_PIN_RESET;
-		} else {
-			R = GPIO_PIN_SET;
-			G = GPIO_PIN_SET;
-			B = GPIO_PIN_RESET;
-		}
-
-	}
-
-	void apagar_led(int x, int y) {
-		char R = 0, G = 0, B = 0;
-	}
-
 	void encontrar_objeto(char *entrada) {
 		int encontrou = 0;
-		for (int x = 0; x < 3; x++) {
-			for (int y = 0; y < 3; y++) {
-				if (strcmp(entrada, objetos[x][y]) == 0) {
-					acender_led(x, y, "green");
-				} else {
-					acender_led(x, y, "red");
-					HAL_Delay(100);
-					apagar_led(x, y);
-					esperar_entrada(entrada);
-				}
+		for (int i = 0; i < 16; i++) {
+			if (strcmp(entrada, objetos[i]) == 0) {
+				setABCD(i);
+				HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_5, SET);
+				HAL_Delay(100);
+				HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_5, RESET);
+				encontrou = 1;
+			} else {
+				setABCD(i);
+				HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_4, SET);
+				HAL_Delay(100);
+				HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_4, RESET);
 			}
+		}
+
+		if (encontrou == 0) {
+			esperar_entrada(entrada);
 		}
 	}
 
 	void esperar_entrada(String entrada) {
+		//CORES: PB4, PB5, PB6
 		entrada_pergunta = 'a';
+		int i = 0;
 
 		while (entrada_pergunta == 'a') {
-			for (int x = 0; x < 3; x++) {
-				for (int y = 0; y < 3; y++) {
-					acender_led(x, y, "yellow");
-					HAL_Delay(100);
-					apagar_led(x, y);
-				}
-			}
+			setABCD(i);
+			HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_4, SET);
+			HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_5, SET);
+			HAL_Delay(100);
+			HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_4, RESET);
+			HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_5, RESET);
 		}
 		if (entrada_pergunta == 's') {
 			mostrar_posicoes_disponiveis();
@@ -155,7 +161,27 @@ int main(void) {
 			memset(nome_objeto, 0, strlen(nome_objeto));
 			entrada_pergunta = 'p';
 		}
+	}
 
+	void mostrar_posicoes_disponiveis() {
+		HAL_GPIO_WritePin(GPIOA_BASE, GPIO_PIN_11, GPIO_PIN_SET);
+		for (int i = 0; i < 4; i++) {
+			setABteclado(i);
+			for (int j = 0; j < 4; j++) {
+				unit_16t pino = 0x01 << 7;
+				int fechado = HAL_GPIO_ReadPin(GPIOA_BASE, pino << j);
+				if (fechado == 1) {
+					int numLED = 4 * i + j;
+					HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_4, GPIO_PIN_SET);
+					HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_5, GPIO_PIN_SET);
+					setABCD(numLED);
+					HAL_Delay(1000);
+					HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_4, GPIO_PIN_RESET);
+					HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_5, GPIO_PIN_RESET);
+				}
+			}
+		}
+		HAL_GPIO_WritePin(GPIOA_BASE, GPIO_PIN_11, GPIO_PIN_RESET);
 	}
 
 	/* USER CODE END 2 */
@@ -171,7 +197,7 @@ int main(void) {
 			HAL_GPIO_WritePin(GPIOA_BASE, GPIO_PIN_14, GPIO_PIN_RESET);
 			//HAL_GPIO_WritePin(GPIOA_BASE, PINO_ITERADO, GPIO_PIN_SET);
 
-			if (HAL_GPIO_ReadPin(GPIOA_BASE, GPIO_PIN_7) == GPIO_PIN_SET) {
+			if (HAL_GPIO_ReadPin(GPIOA_BASE, GPIO_PIN_17) == GPIO_PIN_SET) {
 
 			}
 
@@ -215,7 +241,7 @@ int main(void) {
 					nome_objeto[strlen(nome_objeto)] = ' ';
 				}
 				if (i == 0 && entrada_pergunta == 'a') {
-					entrada_pergunta = 'n';
+					entrada_pergunta = 'p';
 				}
 			}
 			if (HAL_GPIO_ReadPin(GPIOA_BASE, GPIO_PIN_2) == GPIO_PIN_SET) {
