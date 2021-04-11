@@ -85,7 +85,7 @@ int main(void) {
 	/* Initialize all configured peripherals */
 	MX_GPIO_Init();
 	/* USER CODE BEGIN 2 */
-	char nome_objeto[25] = "Desconhecido";
+	char nome_objeto[25];
 	char objetos[16][25];
 	GPIO_PinState objetos_referencia[16];
 	char entrada_pergunta = 'p';
@@ -198,7 +198,7 @@ int main(void) {
 				int apertado = HAL_GPIO_ReadPin(GPIOA_BASE, pino << j);
 				if (apertado == 1) {
 					if (objetos_referencia[4 * i + j] == 0) {
-						guardar_objeto("Desconhecido", (4 * i + j));
+						guardar_objeto("0000", (4 * i + j));
 						objetos_referencia[4 * i + j] = 1;
 					}
 				} else {
@@ -219,29 +219,56 @@ int main(void) {
 				uint16_t pino = 0x01;
 				int apertado = HAL_GPIO_ReadPin(GPIOA_BASE, pino << j);
 				if (apertado == 1) {
-					if (i == 0 && j == 0) { // A, B, C
+					if (i == 0 && j == 0) {
+						if (entrada_pergunta == 'p') {
+							nome_objeto[strlen(nome_objeto)] = '1';
+						}
 
 						if (entrada_pergunta == 'a') {
 							entrada_pergunta = 's';
 						}
 
-					} else if (i == 0 && j == 1) { // D, E, F
+					} else if (i == 0 && j == 1) {
+						if (entrada_pergunta == 'p') {
+							nome_objeto[strlen(nome_objeto)] = '2';
+						}
 						if (entrada_pergunta == 'a') {
 							entrada_pergunta = 'p';
 						}
-					} else if (i == 0 && j == 2) { // G, H, I
+					} else if (i == 0 && j == 2) {
+						if (entrada_pergunta == 'p') {
+							nome_objeto[strlen(nome_objeto)] = '3';
+						}
 
-					} else if (i == 1 && j == 0) { // J, K, L
+					} else if (i == 1 && j == 0) {
+						if (entrada_pergunta == 'p') {
+							nome_objeto[strlen(nome_objeto)] = '4';
+						}
 
-					} else if (i == 1 && j == 1) { // M, N, O
+					} else if (i == 1 && j == 1) {
+						if (entrada_pergunta == 'p') {
+							nome_objeto[strlen(nome_objeto)] = '5';
+						}
 
-					} else if (i == 1 && j == 2) { // P, Q, R
+					} else if (i == 1 && j == 2) {
+						if (entrada_pergunta == 'p') {
+							nome_objeto[strlen(nome_objeto)] = '6';
+						}
 
-					} else if (i == 2 && j == 0) { // S, T, U
+					} else if (i == 2 && j == 0) {
+						if (entrada_pergunta == 'p') {
+							nome_objeto[strlen(nome_objeto)] = '7';
+						}
 
-					} else if (i == 2 && j == 1) { // V, W, X
+					} else if (i == 2 && j == 1) {
+						if (entrada_pergunta == 'p') {
+							nome_objeto[strlen(nome_objeto)] = '8';
+						}
 
-					} else if (i == 2 && j == 2) { // Y, Z
+					} else if (i == 2 && j == 2) {
+						if (entrada_pergunta == 'p') {
+							nome_objeto[strlen(nome_objeto)] = '9';
+						}
 
 					} else if (i == 3 && j == 0) {
 						if (entrada_pergunta == 'p') {
@@ -250,7 +277,7 @@ int main(void) {
 
 					} else if (i == 3 && j == 1) {
 						if (entrada_pergunta == 'p') {
-							nome_objeto[strlen(nome_objeto)] = ' ';
+							nome_objeto[strlen(nome_objeto)] = '0';
 						}
 
 					} else if (i == 3 && j == 2) {
