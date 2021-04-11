@@ -25,8 +25,8 @@ Imagem exemplificando quando um objeto é encontrado.
 
 ## Resultados
  - Luzes corretamente implementadas
- - Sistema de armazenamento e consulta de objetos
- - 
+ - Sistema de armazenamento e consulta de objetos funcional
+ - Software devidamente implementado
 
 ## Conclusões:
 Tivemos bastante dificuldades causadas pelo uso do simulador. Ao utilizarmos o teclado ou o sistema da gaveta, o sistema gastava bastante tempo e energia da CPU tentando realizar e animar todas as instruções, que ficavam em loop, causando um efeito inesperado e inviabilizando seu uso na demonstração via simulador. Após algumas pesquisas realizadas para descobrir o motivo de tal comportamento, descobrimos que isso é causado por conta das conexões dos circuitos. Porém, a realização do projeto, mesmo com tais agraventes, pôde ser muito proveitosa e nos agregou bastante experiência, principalmente em uma área não tão explorada em momentos iniciais do curso de engenharia de computação. 
