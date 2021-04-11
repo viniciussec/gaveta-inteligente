@@ -54,6 +54,138 @@ static void MX_GPIO_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+char nome_objeto[25];
+char objetos[16][25];
+int objetos_referencia[16];
+char entrada_pergunta = 'p';
+
+int readBit(unsigned char x, int bit) {
+	unsigned char mask = (0x01 << bit);
+	if ((x & mask) == 0x00) {
+		return 0;
+	} else {
+		return 1;
+	}
+}
+
+void setABCD(int x) {
+	HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_0, readBit(x, 0));
+	HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_1, readBit(x, 1));
+	HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_2, readBit(x, 2));
+	HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_3, readBit(x, 3));
+}
+
+void setABteclado(int x) {
+	HAL_GPIO_WritePin(GPIOA_BASE, GPIO_PIN_4, readBit(x, 0));
+	HAL_GPIO_WritePin(GPIOA_BASE, GPIO_PIN_5, readBit(x, 1));
+}
+
+void guardar_objeto(char *x, int pos) {
+	strcpy(objetos[pos], x);
+	objetos_referencia[pos] = 1;
+}
+
+void retirar_objeto(int pos) {
+	memset(objetos[pos], 0, strlen(objetos[0]));
+	objetos_referencia[pos] = 0;
+}
+
+void mostrar_posicoes_disponiveis() {
+	for (int i = 0; i < 16; i++) {
+		if (objetos_referencia[i] == 0) {
+			HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_5, GPIO_PIN_SET);
+			setABCD(i);
+			HAL_Delay(100);
+			HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_5, GPIO_PIN_RESET);
+		}
+	}
+
+}
+
+void atualizar_objetos() {
+	for (int i = 0; i < 4; i++) {
+		uint16_t mask = 0x01 << 11;
+		HAL_GPIO_WritePin(GPIOA_BASE, mask << i, 0);
+	}
+	for (int i = 0; i < 4; i++) {
+		uint16_t mask = 0x01 << 11;
+		HAL_GPIO_WritePin(GPIOA_BASE, mask << i, 1);
+		for (int j = 0; j < 4; j++) {
+			mask = 0x01 << 7;
+			int apertado = HAL_GPIO_ReadPin(GPIOA_BASE, mask << j);
+			if (apertado == 1) {
+				if (objetos_referencia[4 * i + j] == 0) {
+					guardar_objeto("Desconhecido", (4 * i + j));
+					objetos_referencia[4 * i + j] = 1;
+				} else {
+					//guardar_objeto(nome_objeto, (4 * i + j));
+				}
+			} else {
+				if (objetos_referencia[4 * i + j] == 1) {
+					retirar_objeto(4 * i + j);
+					objetos_referencia[4 * i + j] = 0;
+				}
+			}
+		}
+		HAL_GPIO_WritePin(GPIOA_BASE, mask << i, 0);
+	}
+}
+
+void esperar_entrada(char *entrada) {
+	entrada_pergunta = 'a';
+
+	setABCD(0);
+	HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_4, SET);
+	HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_5, SET);
+	HAL_Delay(100);
+	HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_4, RESET);
+	HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_5, RESET);
+
+	setABCD(1);
+	HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_4, SET);
+	HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_5, SET);
+	HAL_Delay(100);
+	HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_4, RESET);
+	HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_5, RESET);
+
+	while (entrada_pergunta == 'a') {
+		HAL_Delay(2000);
+		entrada_pergunta = 's';
+	}
+	if (entrada_pergunta == 's') {
+		//atualizar_objetos();
+		mostrar_posicoes_disponiveis();
+	} else {
+		memset(nome_objeto, 0, strlen(nome_objeto));
+		entrada_pergunta = 'p';
+	}
+
+}
+
+void encontrar_objeto(char *entrada) {
+	int encontrou = 0;
+	for (int i = 0; i < 16; i++) {
+		setABCD(i);
+		if (strcmp(entrada, objetos[i]) == 0) {
+			HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_5, SET);
+			HAL_Delay(100);
+			HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_5, RESET);
+			encontrou = 1;
+		} else {
+			HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_4, SET);
+			HAL_Delay(100);
+			HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_4, RESET);
+		}
+	}
+
+	if (encontrou == 0) {
+		esperar_entrada(entrada);
+	}
+}
+
+void ler_teclado() {
+
+}
 
 /* USER CODE END 0 */
 
@@ -85,211 +217,55 @@ int main(void) {
 	/* Initialize all configured peripherals */
 	MX_GPIO_Init();
 	/* USER CODE BEGIN 2 */
-	char nome_objeto[25];
-	char objetos[16][25];
-	GPIO_PinState objetos_referencia[16];
-	char entrada_pergunta = 'p';
 
-	int readBit(unsigned char x, int bit) {
-		unsigned char mask = (0x01 << bit);
-		if ((x & mask) == 0x00) {
-			return 0;
-		} else {
-			return 1;
-		}
+	//DEMO ENCONTRAR OBJETO
+	for (int i = 0; i < 16; i++) {
+		strcpy(objetos[i], "null");
 	}
 
-	void setABCD(int x) {
-		HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_0, readBit(x, 0));
-		HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_1, readBit(x, 1));
-		HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_2, readBit(x, 2));
-		HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_3, readBit(x, 3));
+	for (int i = 0; i < 16; i++) {
+		objetos_referencia[i] = 0;
 	}
 
-	void setABteclado(int x) {
-		HAL_GPIO_WritePin(GPIOA_BASE, GPIO_PIN_4, readBit(x, 0));
-		HAL_GPIO_WritePin(GPIOA_BASE, GPIO_PIN_5, readBit(x, 1));
+	guardar_objeto("Lápis", 4);
+	guardar_objeto("Caderno", 6);
+	guardar_objeto("Caneta", 8);
+	guardar_objeto("Borracha", 10);
+	guardar_objeto("Grampeador", 7);
+	guardar_objeto("Máscara", 1);
+	guardar_objeto("Garrafa", 2);
+	guardar_objeto("Biscoito", 15);
+
+	strcpy(nome_objeto, "Caderno");
+	encontrar_objeto("Caderno");
+
+//DEMO NÃO ENCONTRAR OBJETO E CADASTRAR
+
+	for (int i = 0; i < 16; i++) {
+		strcpy(objetos[i], "null");
 	}
 
-	void guardar_objeto(char *x, int pos) {
-		strcpy(objetos[pos], x);
+	for (int i = 0; i < 16; i++) {
+		objetos_referencia[i] = 0;
 	}
 
-	void retirar_objeto(int pos) {
-		memset(objetos[pos], 0, strlen(objetos[0]));
-	}
+	guardar_objeto("Lápis", 4);
+	guardar_objeto("Caderno", 6);
+	guardar_objeto("Caneta", 8);
+	guardar_objeto("Borracha", 10);
+	guardar_objeto("Grampeador", 4);
+	guardar_objeto("Máscara", 6);
+	guardar_objeto("Garrafa", 8);
+	guardar_objeto("Biscoito", 10);
 
-	void mostrar_posicoes_disponiveis() {
-		HAL_GPIO_WritePin(GPIOA_BASE, GPIO_PIN_11, GPIO_PIN_SET);
-		for (int i = 0; i < 4; i++) {
-			setABteclado(i);
-			for (int j = 0; j < 4; j++) {
-				uint16_t pino = 0x01 << 7;
-				int fechado = HAL_GPIO_ReadPin(GPIOA_BASE, pino << j);
-				if (fechado == 1) {
-					int numLED = 4 * i + j;
-					HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_4, GPIO_PIN_SET);
-					HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_5, GPIO_PIN_SET);
-					setABCD(numLED);
-					HAL_Delay(1000);
-					HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_4, GPIO_PIN_RESET);
-					HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_5, GPIO_PIN_RESET);
-				}
-			}
-		}
-		HAL_GPIO_WritePin(GPIOA_BASE, GPIO_PIN_11, GPIO_PIN_RESET);
-	}
-
-	void esperar_entrada(char *entrada) {
-		//CORES: PB4, PB5, PB6
-		entrada_pergunta = 'a';
-		int i = 0;
-
-		while (entrada_pergunta == 'a') {
-			setABCD(i);
-			HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_4, SET);
-			HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_5, SET);
-			HAL_Delay(100);
-			HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_4, RESET);
-			HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_5, RESET);
-		}
-		if (entrada_pergunta == 's') {
-			mostrar_posicoes_disponiveis();
-		} else {
-			memset(nome_objeto, 0, strlen(nome_objeto));
-			entrada_pergunta = 'p';
-		}
-	}
-
-	void encontrar_objeto(char *entrada) {
-		int encontrou = 0;
-		for (int i = 0; i < 16; i++) {
-			if (strcmp(entrada, objetos[i]) == 0) {
-				setABCD(i);
-				HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_5, SET);
-				HAL_Delay(100);
-				HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_5, RESET);
-				encontrou = 1;
-			} else {
-				setABCD(i);
-				HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_4, SET);
-				HAL_Delay(100);
-				HAL_GPIO_WritePin(GPIOB_BASE, GPIO_PIN_4, RESET);
-			}
-		}
-
-		if (encontrou == 0) {
-			esperar_entrada(entrada);
-		}
-	}
+	strcpy(nome_objeto, "Celular");
+	encontrar_objeto(nome_objeto);
 
 	/* USER CODE END 2 */
 
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */
 	while (1) {
-
-		//POSIÇÕES DA GAVETA
-		HAL_GPIO_WritePin(GPIOA_BASE, GPIO_PIN_11, GPIO_PIN_SET);
-		for (int i = 0; i < 4; i++) {
-			setABteclado(i);
-			for (int j = 0; j < 4; j++) {
-				uint16_t pino = 0x01;
-				int apertado = HAL_GPIO_ReadPin(GPIOA_BASE, pino << j);
-				if (apertado == 1) {
-					if (objetos_referencia[4 * i + j] == 0) {
-						guardar_objeto("0000", (4 * i + j));
-						objetos_referencia[4 * i + j] = 1;
-					}
-				} else {
-					if (objetos_referencia[4 * i + j] == 1) {
-						retirar_objeto(4 * i + j);
-						objetos_referencia[4 * i + j] = 0;
-					}
-				}
-			}
-		}
-		HAL_GPIO_WritePin(GPIOA_BASE, GPIO_PIN_11, GPIO_PIN_RESET);
-
-		//POSIÇÕES DO TECLADO
-		HAL_GPIO_WritePin(GPIOA_BASE, GPIO_PIN_3, GPIO_PIN_SET);
-		for (int i = 0; i < 4; i++) {
-			setABteclado(i);
-			for (int j = 0; j < 3; j++) {
-				uint16_t pino = 0x01;
-				int apertado = HAL_GPIO_ReadPin(GPIOA_BASE, pino << j);
-				if (apertado == 1) {
-					if (i == 0 && j == 0) {
-						if (entrada_pergunta == 'p') {
-							nome_objeto[strlen(nome_objeto)] = '1';
-						}
-
-						if (entrada_pergunta == 'a') {
-							entrada_pergunta = 's';
-						}
-
-					} else if (i == 0 && j == 1) {
-						if (entrada_pergunta == 'p') {
-							nome_objeto[strlen(nome_objeto)] = '2';
-						}
-						if (entrada_pergunta == 'a') {
-							entrada_pergunta = 'p';
-						}
-					} else if (i == 0 && j == 2) {
-						if (entrada_pergunta == 'p') {
-							nome_objeto[strlen(nome_objeto)] = '3';
-						}
-
-					} else if (i == 1 && j == 0) {
-						if (entrada_pergunta == 'p') {
-							nome_objeto[strlen(nome_objeto)] = '4';
-						}
-
-					} else if (i == 1 && j == 1) {
-						if (entrada_pergunta == 'p') {
-							nome_objeto[strlen(nome_objeto)] = '5';
-						}
-
-					} else if (i == 1 && j == 2) {
-						if (entrada_pergunta == 'p') {
-							nome_objeto[strlen(nome_objeto)] = '6';
-						}
-
-					} else if (i == 2 && j == 0) {
-						if (entrada_pergunta == 'p') {
-							nome_objeto[strlen(nome_objeto)] = '7';
-						}
-
-					} else if (i == 2 && j == 1) {
-						if (entrada_pergunta == 'p') {
-							nome_objeto[strlen(nome_objeto)] = '8';
-						}
-
-					} else if (i == 2 && j == 2) {
-						if (entrada_pergunta == 'p') {
-							nome_objeto[strlen(nome_objeto)] = '9';
-						}
-
-					} else if (i == 3 && j == 0) {
-						if (entrada_pergunta == 'p') {
-							nome_objeto[strlen(nome_objeto) - 1] = '\0';
-						}
-
-					} else if (i == 3 && j == 1) {
-						if (entrada_pergunta == 'p') {
-							nome_objeto[strlen(nome_objeto)] = '0';
-						}
-
-					} else if (i == 3 && j == 2) {
-						if (entrada_pergunta == 'p') {
-							encontrar_objeto(nome_objeto);
-						}
-
-					}
-				}
-			}
-		}
-		HAL_GPIO_WritePin(GPIOA_BASE, GPIO_PIN_3, GPIO_PIN_RESET);
 
 		/* USER CODE END WHILE */
 
@@ -344,33 +320,31 @@ static void MX_GPIO_Init(void) {
 	__HAL_RCC_GPIOB_CLK_ENABLE();
 
 	/*Configure GPIO pin Output Level */
-	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_11,
+	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_6,
 			GPIO_PIN_RESET);
 
 	/*Configure GPIO pin Output Level */
 	HAL_GPIO_WritePin(GPIOB,
-			GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_4
-					| GPIO_PIN_5 | GPIO_PIN_6, GPIO_PIN_RESET);
+	GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5,
+			GPIO_PIN_RESET);
 
-	/*Configure GPIO pins : PA0 PA1 PA2 PA7
-	 PA8 PA9 PA10 */
-	GPIO_InitStruct.Pin = GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_7
-			| GPIO_PIN_8 | GPIO_PIN_9 | GPIO_PIN_10;
+	/*Configure GPIO pins : PA0 PA1 PA2 */
+	GPIO_InitStruct.Pin = GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2;
 	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
 	GPIO_InitStruct.Pull = GPIO_PULLDOWN;
 	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-	/*Configure GPIO pins : PA3 PA4 PA5 PA11 */
-	GPIO_InitStruct.Pin = GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_11;
+	/*Configure GPIO pins : PA3 PA4 PA5 PA6 */
+	GPIO_InitStruct.Pin = GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_6;
 	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
 	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
 	/*Configure GPIO pins : PB0 PB1 PB2 PB3
-	 PB4 PB5 PB6 */
+	 PB4 PB5 */
 	GPIO_InitStruct.Pin = GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3
-			| GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_6;
+			| GPIO_PIN_4 | GPIO_PIN_5;
 	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
